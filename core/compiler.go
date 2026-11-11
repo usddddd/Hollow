@@ -40,5 +40,9 @@ func buildGCCArgs(srcPath, outputPath string, profile *Profile) []string {
 	} else {
 		args = append(args, "-static")
 	}
+
+	if (profile.Template == "custom") {
+		args = append(args, profile.Compile.Args...)
+	}
 	return args
 }

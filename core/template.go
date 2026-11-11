@@ -22,6 +22,7 @@ type CompileOptions struct {
 	GCC        string `json:"gcc"`
 	Strip      bool   `json:"strip"`
 	OutputType string `json:"output_type"` // "exe" (default) or "dll"
+	Args       []string `json:"args,omitempty"`
 }
 
 func LoadTemplate(templateDir, templateName string) (string, error) {

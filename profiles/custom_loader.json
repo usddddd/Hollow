@@ -1,0 +1,18 @@
+{
+    "name": "Custom Loader",
+    "author": "noop",
+    "template": "custom",
+    "target_process": "svchost.exe",
+    "arch": "x64",
+    "compile": {
+        "automatic": true,
+        "gcc": "x86_64-w64-mingw32-g++",
+        "strip": true,
+        "output_type": "exe",
+        "args" : ["-O2", "-s", "-fno-exceptions", "-fno-rtti" ,
+    "-ffunction-sections", "-fdata-sections", "-Wl","--gc-sections" ,
+    "-mwindows",  "-lws2_32"]
+    },
+    "output_dir": "./output"
+}
+
