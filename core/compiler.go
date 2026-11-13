@@ -38,7 +38,7 @@ func buildCompilerArgs(srcPath, outputPath string, profile *Profile) []string {
 		args = append(args, profile.Compile.Args...)
 	}
 
-	args = append(args, srcPath, "-o", outputPath, "-lbcrypt", "-lws2_32")
+	args = append(args, srcPath, "-o", outputPath, "-w")
 	if profile.Compile.Strip {
 		args = append(args, "-s")
 	}
@@ -46,6 +46,10 @@ func buildCompilerArgs(srcPath, outputPath string, profile *Profile) []string {
 		args = append(args, "-shared", "-nostartfiles", "-static-libgcc")
 	} else {
 		args = append(args, "-static")
+	}
+	// link libs
+	if profile.Compile.Libs != nil {
+		args = append(args, profile.Compile.Libs...)
 	}
 
 	return args

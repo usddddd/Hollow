@@ -16,8 +16,11 @@
             "-fno-rtti",
             "-ffunction-sections",
             "-fdata-sections",
-	    "-Wl,--gc-sections",
-            "-mwindows",
+            "-Wl,--gc-sections",
+            "-mwindows"
+        ],
+        "libs": [
+            "-lbcrypt",
             "-lws2_32"
         ]
     },

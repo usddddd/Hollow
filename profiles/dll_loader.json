@@ -10,7 +10,10 @@
         "compiler": "x86_64-w64-mingw32-gcc",
         "args": "",
         "strip": true,
-        "output_type": "dll"
+        "output_type": "dll",
+        "libs": [
+            "-lbcrypt"
+        ]
     },
     "output_dir": "./output"
 }

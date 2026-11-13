@@ -9,7 +9,10 @@
         "automatic": true,
         "compiler": "x86_64-w64-mingw32-gcc",
         "strip": true,
-        "output_type": "exe"
+        "output_type": "exe",
+        "libs": [
+            "-lbcrypt"
+        ]
     },
     "output_dir": "./output"
 }
