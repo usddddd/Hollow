@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 )
 
 func CompileLoader(source, outputPath string, profile *Profile) error {
@@ -14,12 +15,13 @@ func CompileLoader(source, outputPath string, profile *Profile) error {
 	}
 	defer os.RemoveAll(tmpDir)
 
-	srcPath := filepath.Join(tmpDir, "loader.c")
+	srcPath := filepath.Join(tmpDir, profile.Filename)
 	if err := os.WriteFile(srcPath, []byte(source), 0600); err != nil {
 		return fmt.Errorf("writing source: %w", err)
 	}
 
 	args := buildCompilerArgs(srcPath, outputPath, profile)
+	fmt.Printf("[+] Compile command: %s %s\n", profile.Compile.Compiler, strings.Join(args, " "))
 	cmd := exec.Command(profile.Compile.Compiler, args...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
