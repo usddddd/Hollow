@@ -33,7 +33,12 @@ func CompileLoader(source, outputPath string, profile *Profile) error {
 }
 
 func buildCompilerArgs(srcPath, outputPath string, profile *Profile) []string {
-	args := []string{srcPath, "-o", outputPath, "-lbcrypt", "-w"}
+	args := []string{}
+	if profile.Compile.Args != nil {
+		args = append(args, profile.Compile.Args...)
+	}
+
+	args = append(args, srcPath, "-o", outputPath, "-lbcrypt", "-lws2_32")
 	if profile.Compile.Strip {
 		args = append(args, "-s")
 	}
@@ -43,8 +48,5 @@ func buildCompilerArgs(srcPath, outputPath string, profile *Profile) []string {
 		args = append(args, "-static")
 	}
 
-	if profile.Compile.Args != nil {
-		args = append(args, profile.Compile.Args...)
-	}
 	return args
 }

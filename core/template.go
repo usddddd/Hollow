@@ -24,6 +24,7 @@ type CompileOptions struct {
 	Strip      bool     `json:"strip"`
 	OutputType string   `json:"output_type"` // "exe" (default) or "dll"
 	Args       []string `json:"args,omitempty"`
+	Argstring  string   `json:"argstring,omitempty"`
 }
 
 func LoadTemplate(templateDir, templateName, filename string) (string, error) {
