@@ -15,18 +15,19 @@ type Profile struct {
 	Arch          string         `json:"arch"`
 	Compile       CompileOptions `json:"compile"`
 	OutputDir     string         `json:"output_dir"`
+	Filename      string         `json:"filename"`
 }
 
 type CompileOptions struct {
-	Automatic  bool   `json:"automatic"`
-	GCC        string `json:"gcc"`
-	Strip      bool   `json:"strip"`
-	OutputType string `json:"output_type"` // "exe" (default) or "dll"
+	Automatic  bool     `json:"automatic"`
+	Compiler   string   `json:"compiler"`
+	Strip      bool     `json:"strip"`
+	OutputType string   `json:"output_type"` // "exe" (default) or "dll"
 	Args       []string `json:"args,omitempty"`
 }
 
-func LoadTemplate(templateDir, templateName string) (string, error) {
-	path := filepath.Join(templateDir, templateName, "loader.c")
+func LoadTemplate(templateDir, templateName, filename string) (string, error) {
+	path := filepath.Join(templateDir, templateName, filename)
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return "", fmt.Errorf("reading template %q: %w", path, err)

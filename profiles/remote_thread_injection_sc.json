@@ -6,9 +6,10 @@
     "arch": "x64",
     "compile": {
         "automatic": true,
-        "gcc": "x86_64-w64-mingw32-gcc",
+        "compiler": "x86_64-w64-mingw32-gcc",
         "strip": true,
         "output_type": "exe"
     },
-    "output_dir": "./output"
+    "output_dir": "./output",
+    "filename": "loader.c"
 }

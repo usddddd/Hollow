@@ -38,7 +38,7 @@ func Generate(opts GenerateOptions) error {
 	}
 	fmt.Printf("[*] Encrypted shellcode: %d bytes (AES-256-CBC)\n", len(payload.Ciphertext))
 
-	tmpl, err := core.LoadTemplate(opts.TemplateDir, profile.Template)
+	tmpl, err := core.LoadTemplate(opts.TemplateDir, profile.Template, profile.Filename)
 	if err != nil {
 		return fmt.Errorf("loading template: %w", err)
 	}
@@ -57,7 +57,7 @@ func Generate(opts GenerateOptions) error {
 	outputPath := filepath.Join(profile.OutputDir, outputName)
 
 	if !profile.Compile.Automatic {
-		srcOut := filepath.Join(profile.OutputDir, "loader.c")
+		srcOut := filepath.Join(profile.OutputDir, profile.Filename)
 		if err := os.WriteFile(srcOut, []byte(source), 0600); err != nil {
 			return fmt.Errorf("writing source: %w", err)
 		}
@@ -66,12 +66,12 @@ func Generate(opts GenerateOptions) error {
 		if profile.Compile.OutputType == "dll" {
 			extraFlags += " -shared"
 		}
-		fmt.Printf("[!] Compile manually: %s loader.c -o %s %s\n",
-			profile.Compile.GCC, outputPath, extraFlags)
+		fmt.Printf("[!] Compile manually: %s %s -o %s %s\n",
+			profile.Compile.Compiler, profile.Filename, outputPath, extraFlags)
 		return nil
 	}
 
-	fmt.Printf("[*] Compiling with %s\n", profile.Compile.GCC)
+	fmt.Printf("[*] Compiling with %s\n", profile.Compile.Compiler)
 	if err := core.CompileLoader(source, outputPath, &profile); err != nil {
 		return err
 	}

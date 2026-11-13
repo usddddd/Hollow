@@ -19,8 +19,8 @@ func CompileLoader(source, outputPath string, profile *Profile) error {
 		return fmt.Errorf("writing source: %w", err)
 	}
 
-	args := buildGCCArgs(srcPath, outputPath, profile)
-	cmd := exec.Command(profile.Compile.GCC, args...)
+	args := buildCompilerArgs(srcPath, outputPath, profile)
+	cmd := exec.Command(profile.Compile.Compiler, args...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
@@ -30,7 +30,7 @@ func CompileLoader(source, outputPath string, profile *Profile) error {
 	return nil
 }
 
-func buildGCCArgs(srcPath, outputPath string, profile *Profile) []string {
+func buildCompilerArgs(srcPath, outputPath string, profile *Profile) []string {
 	args := []string{srcPath, "-o", outputPath, "-lbcrypt", "-w"}
 	if profile.Compile.Strip {
 		args = append(args, "-s")
@@ -41,7 +41,7 @@ func buildGCCArgs(srcPath, outputPath string, profile *Profile) []string {
 		args = append(args, "-static")
 	}
 
-	if (profile.Template == "custom") {
+	if profile.Compile.Args != nil {
 		args = append(args, profile.Compile.Args...)
 	}
 	return args

@@ -1,0 +1,16 @@
+{
+    "name": "DLL Loader",
+    "author": "noop",
+    "template": "dll_loader",
+    "filename": "loader.c",
+    "target_process": "",
+    "arch": "x64",
+    "compile": {
+        "automatic": true,
+        "compiler": "x86_64-w64-mingw32-gcc",
+        "args": "",
+        "strip": true,
+        "output_type": "dll"
+    },
+    "output_dir": "./output"
+}

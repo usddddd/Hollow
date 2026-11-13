@@ -2,11 +2,13 @@
     "name": "DLL Sideload",
     "author": "mold",
     "template": "dll_sideload",
+    "filename": "loader.c",
     "target_process": "",
     "arch": "x64",
     "compile": {
         "automatic": true,
-        "gcc": "x86_64-w64-mingw32-gcc",
+        "compiler": "x86_64-w64-mingw32-gcc",
+        "args": "",
         "strip": true,
         "output_type": "dll"
     },
