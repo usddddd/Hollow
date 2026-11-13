@@ -39,6 +39,9 @@ unsigned char encrypted_shellcode[] = {
     0x00  // placeholder
 };
 
+//unsigned char encrypted_shellcode[] = { ${SHELLCODE} };
+//unsigned char key[]       = { ${KEY} };
+//unsigned char iv[]        = { ${IV} };
 SIZE_T original_shellcode_size = 460;  // Update from Python output
 
 // ============================================================
