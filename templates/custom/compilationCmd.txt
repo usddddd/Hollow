@@ -1,1 +1,0 @@
-x86_64-w64-mingw32-g++     -O2 -s -fno-exceptions -fno-rtti     -ffunction-sections -fdata-sections -Wl,--gc-sections     -static -mwindows     -o loader.exe loader.cpp     -lbcrypt -lws2_32
