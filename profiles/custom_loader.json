@@ -12,13 +12,11 @@
         "output_type": "exe",
         "args": [
             "-O2",
-            "-s",
             "-fno-exceptions",
             "-fno-rtti",
             "-ffunction-sections",
             "-fdata-sections",
-            "-Wl",
-            "--gc-sections",
+	    "-Wl,--gc-sections",
             "-mwindows",
             "-lws2_32"
         ]
