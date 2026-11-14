@@ -41,6 +41,7 @@ func SubstitutePlaceholders(tmpl string, payload *EncryptedPayload, profile *Pro
 		"${SHELLCODE}", FormatByteArray(payload.Ciphertext),
 		"${KEY}", FormatByteArray(payload.Key),
 		"${IV}", FormatByteArray(payload.IV),
+		"${XOR_KEY}", FormatByteArray(payload.XorKey),
 		"${TARGET_PROCESS}", strings.ReplaceAll(profile.TargetProcess, `\`, `\\`),
 	)
 	return r.Replace(tmpl)

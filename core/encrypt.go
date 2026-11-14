@@ -12,6 +12,7 @@ type EncryptedPayload struct {
 	Ciphertext []byte
 	Key        []byte
 	IV         []byte
+	XorKey     []byte
 }
 
 func EncryptAES256CBC(plaintext []byte) (*EncryptedPayload, error) {
@@ -36,10 +37,15 @@ func EncryptAES256CBC(plaintext []byte) (*EncryptedPayload, error) {
 	mode := cipher.NewCBCEncrypter(block, iv)
 	mode.CryptBlocks(ciphertext, padded)
 
+	bb := make([]byte, 16)
+	if _, err := io.ReadFull(rand.Reader, bb); err != nil {
+		return nil, fmt.Errorf("generating xor key: %w", err)
+	}
 	return &EncryptedPayload{
 		Ciphertext: ciphertext,
 		Key:        key,
 		IV:         iv,
+		XorKey:     bb,
 	}, nil
 }
 
